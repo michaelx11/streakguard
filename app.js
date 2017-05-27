@@ -68,6 +68,29 @@ app.post('/sms/receive', bodyParser, (req, res) => {
     .send(resp.toString());
 });
 
+app.post('/refresh', bodyParser, (req, res) => {
+  // Refresh the timestamp on a specific user
+  const token = req.query.token;
+  if (token != SECRET_TOKEN) {
+    res.status(400).send('Invalid secret token.');
+    return;
+  }
+
+  const userid = req.query.userid;
+  // TODO: lookup the userid in Datastore
+  // TODO: refresh the timestamp associated with that
+});
+
+app.post('/trigger_check', bodyParser, (req, res) => {
+  // This request is kicked off by a cron job
+  // all SnapAccount entities that have [enabled=true] should have
+  // their last_refreshed timestamps checked.
+
+  // TODO: Query all SnapAccounts with enabled=true, then iterate through
+  // them comparing last_refreshed to the current time.
+  // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
+});
+
 // Start the server
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
