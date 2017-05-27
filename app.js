@@ -3,6 +3,7 @@
 
 const format = require('util').format;
 const express = require('express');
+const datastore = require('lib/datastore.js');
 const bodyParser = require('body-parser').urlencoded({
   extended: false
 });
@@ -77,8 +78,26 @@ app.post('/refresh', bodyParser, (req, res) => {
   }
 
   const userid = req.query.userid;
-  // TODO: lookup the userid in Datastore
-  // TODO: refresh the timestamp associated with that
+  datastore.getUser(userid, function(error, entities) {
+    if (error) {
+      res.status(400).send(error);
+      return;
+    }
+
+    if (!entities) {
+      res.status(400).send('No entities match userid: ' + userid);
+      return;
+    }
+
+    var userEntity = entities[0];
+    datastore.updateTimestamp(userEntity, function(err2) {
+      if (err2) {
+        res.status(400).send(err2);
+        return;
+      }
+      res.status(200).send('Refreshed!');
+    });
+  });
 });
 
 app.post('/trigger_check', bodyParser, (req, res) => {
@@ -86,9 +105,14 @@ app.post('/trigger_check', bodyParser, (req, res) => {
   // all SnapAccount entities that have [enabled=true] should have
   // their last_refreshed timestamps checked.
 
-  // TODO: Query all SnapAccounts with enabled=true, then iterate through
-  // them comparing last_refreshed to the current time.
-  // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
+  datastore.getAllEnabledAccounts(function(err1, entities) {
+    if (err1) {
+      res.status(400).send(err1);
+      return;
+    }
+    // them comparing last_refreshed to the current time.
+    // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
+  });
 });
 
 // Start the server
