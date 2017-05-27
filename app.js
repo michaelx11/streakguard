@@ -149,8 +149,7 @@ app.get('/trigger_check', (req, res, next) => {
       console.log('Elapsed millis since last refreshed: ' + diffMillis);
 
       // If 20 hours or more have elapsed, then text the account owner.
-      // TODO: back to 20 after testing
-      if (diffMillis >= 2 * 60 * 60 * 1000) {
+      if (diffMillis >= 20 * 60 * 60 * 1000) {
         console.log('User: ' + userId + ' last refreshed >= 20 hours ago!');
         let ownerNumber = snapAccount['phone_number'];
         sendTwilioMessageWithRetry(
@@ -159,8 +158,7 @@ app.get('/trigger_check', (req, res, next) => {
         );
       }
       // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
-      // TODO: back to 22 after testing
-      if (diffMillis >= 2.5 * 60 * 60 * 1000) {
+      if (diffMillis >= 22 * 60 * 60 * 1000) {
         console.log('User: ' + userId + ' last refreshed >= 22 hours ago, contacting trusted contacts');
         datastore.getTrustedContacts(userId, function(err2, contactEntities) {
           if (err2) {
