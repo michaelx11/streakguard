@@ -60,6 +60,7 @@ app.post('/sms/receive', bodyParser, (req, res) => {
     res.status(400).send('Invalid secret token.');
     return;
   }
+  // TODO: find trusted contact by phone number and refresh that account
 
   const resp = new TwimlResponse();
   resp.message(format('Hello, %s, you said: %s', sender, body));
@@ -100,6 +101,28 @@ app.post('/refresh', bodyParser, (req, res) => {
   });
 });
 
+function sendTwilioMessageHelper(to, body, count) {
+  if (count == 0) {
+    return false;
+  }
+  twilio.sendMessage({
+    to: to,
+    from: TWILIO_NUMBER,
+    body: body
+  }, (err) => {
+    if (err) {
+      console.log('Error sending text: ' + err);
+      return sendTwilioMessageHelper(to, body, count - 1);
+    }
+    return true;
+  });
+}
+
+function sendTwilioMessageWithRetry(to, body) {
+  // Retry 3 times
+  return sendTwilioMessageHelper(to, body, 3);
+}
+
 app.get('/trigger_check', (req, res, next) => {
   // This request is kicked off by a cron job
   // all SnapAccount entities that have [enabled=true] should have
@@ -116,7 +139,45 @@ app.get('/trigger_check', (req, res, next) => {
       return;
     }
     // them comparing last_refreshed to the current time.
-    // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
+    let currentMillis = (new Date()).getTime();
+    for (var i = 0; i < entities.length; i++) {
+      let snapAccount = entities[i];
+      let userId = snapAccount['user'];
+      let lastRefreshedDate = snapAccount['last_refreshed'];
+      let lastRefreshedMillis = lastRefreshedDate.getTime();
+      let diffMillis = currentMillis - lastRefreshedMillis;
+
+      // If 20 hours or more have elapsed, then text the account owner.
+      // TODO: back to 20 after testing
+      if (diffMillis >= 2 * 60 * 60 * 1000) {
+        console.log('User: ' + userId + ' last refreshed >= 20 hours ago!');
+        let ownerNumber = snapAccount['phone_number'];
+        sendTwilioMessageWithRetry(
+          ownerNumber,
+          'User: ' + userId + ' last refreshed: ' + (diffMillis / (60 * 1000)) + ' minutes ago!'
+        );
+      }
+      // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
+      // TODO: back to 22 after testing
+      if (diffMillis >= 2.5 * 60 * 60 * 1000) {
+        console.log('User: ' + userId + ' last refreshed >= 22 hours ago, contacting trusted contacts');
+        datastore.getTrustedContacts(userId, function(err2, contactEntities) {
+          if (err2) {
+            console.log(err2);
+            return;
+          }
+          for (var u = 0; u < contactEntities.length; u++) {
+            let contact = contactEntities[u];
+            let contactNumber = contact['phone_number'];
+            console.log('Contacting: ' + contact);
+            let streakWith = snapAccount['streak_with'];
+            let pass = snapAccount['pass'];
+            let body = 'Save [' + userId + "]'s streak with: " + streakWith + "! pass: [" + pass + "]. Reply with 'done' once you've sent the snap!";
+            sendTwilioMessageWithRetry(contactNumber, body);
+          }
+        });
+      }
+    }
     console.log(entities);
   });
 });
