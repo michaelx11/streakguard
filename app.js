@@ -69,7 +69,7 @@ app.post('/sms/receive', bodyParser, (req, res) => {
     .send(resp.toString());
 });
 
-app.get('/refresh', (req, res, next) => {
+app.post('/refresh', bodyParser, (req, res) => {
   // Refresh the timestamp on a specific user
   const token = req.query.token;
   if (token != SECRET_TOKEN) {
