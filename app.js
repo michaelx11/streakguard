@@ -3,7 +3,7 @@
 
 const format = require('util').format;
 const express = require('express');
-const datastore = require('lib/datastore.js');
+const datastore = require('./lib/datastore.js');
 const bodyParser = require('body-parser').urlencoded({
   extended: false
 });
@@ -100,10 +100,15 @@ app.post('/refresh', bodyParser, (req, res) => {
   });
 });
 
-app.post('/trigger_check', bodyParser, (req, res) => {
+app.get('/trigger_check', (req, res, next) => {
   // This request is kicked off by a cron job
   // all SnapAccount entities that have [enabled=true] should have
   // their last_refreshed timestamps checked.
+  const token = req.query.token;
+  if (token != SECRET_TOKEN) {
+    res.status(400).send('Invalid secret token.');
+    return;
+  }
 
   datastore.getAllEnabledAccounts(function(err1, entities) {
     if (err1) {
@@ -112,6 +117,7 @@ app.post('/trigger_check', bodyParser, (req, res) => {
     }
     // them comparing last_refreshed to the current time.
     // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
+    console.log(entities);
   });
 });
 
