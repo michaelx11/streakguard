@@ -1,0 +1,4 @@
+cron:
+- description: half-hourly check job
+  url: /trigger?token=super_secret_token
+  schedule: every 30 minutes
