@@ -146,6 +146,7 @@ app.get('/trigger_check', (req, res, next) => {
       let lastRefreshedDate = snapAccount['last_refreshed'];
       let lastRefreshedMillis = lastRefreshedDate.getTime();
       let diffMillis = currentMillis - lastRefreshedMillis;
+      console.log('Elapsed millis since last refreshed: ' + diffMillis);
 
       // If 20 hours or more have elapsed, then text the account owner.
       // TODO: back to 20 after testing
