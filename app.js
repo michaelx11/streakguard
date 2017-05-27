@@ -179,6 +179,7 @@ app.get('/trigger_check', (req, res, next) => {
       }
     }
     console.log(entities);
+    res.status(200).send('Checked!');
   });
 });
 
