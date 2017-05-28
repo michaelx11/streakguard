@@ -148,13 +148,19 @@ app.get('/trigger_check', (req, res, next) => {
       let diffMillis = currentMillis - lastRefreshedMillis;
       console.log('Elapsed millis since last refreshed: ' + diffMillis);
 
+      if (diffMillis >= 24.1 * 60 * 60 * 1000) {
+        // doomed, skip to the next poor sod
+        console.log('User: ' + userId + ' expired with diff: ' + diffMillis);
+        continue;
+      }
+
       // If 20 hours or more have elapsed, then text the account owner.
       if (diffMillis >= 20 * 60 * 60 * 1000) {
         console.log('User: ' + userId + ' last refreshed >= 20 hours ago!');
         let ownerNumber = snapAccount['phone_number'];
         sendTwilioMessageWithRetry(
           ownerNumber,
-          'User: ' + userId + ' last refreshed: ' + (diffMillis / (60 * 1000)) + ' minutes ago!'
+          'User: ' + userId + ' last refreshed: ' + Math.round(diffMillis / (60 * 1000)) + ' minutes ago!'
         );
       }
       // If 22 hours or more have elapsed, send the SOS texts to the trusted contacts
